@@ -2,12 +2,12 @@
 
 <p align="center">
     <img src="figures/franc.jpg" width="200px"><br>
-    <span style="font-size: 1.5em; font-family: Georgia;">
-        <em>Conversations with Characters in Stories for Literacy</em>
-    </span>
+    <em style="font-family: Georgia;">
+        🧙 Conversations with Characters in Stories for Literacy
+    </em>
 </p>
 
-## Project description
+## 🪳 Project description
 
 This repository contains the code and data for the project **Conversations with
 Characters in Stories for Literacy** for the *Natural language processing*
