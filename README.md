@@ -14,7 +14,7 @@ Characters in Stories for Literacy** for the *Natural language processing*
 course in the year 2023/24 at the *Faculty of Computer and Information Science*
 in Ljubljana.
 
-We would like to create quick, customised personal bots from novels. Currently,
+We would like to create quick, customized personal bots from novels. Currently,
 there is a world-wide literacy crisis, because young people are reading less
 and less, even though literacy is vital for educational and professional
 success. We would like to motivate young people to read through conversational
@@ -29,9 +29,9 @@ educational purposes.
 - Luka Salvatore Pecoraro
 - Jakob Adam Šircelj
 
-## Repository organisation
+## Repository organization
 
-The repository is organised into directories as follows:
+The repository is organized into directories as follows:
 
 - `notebooks`: Jupyter notebooks with the code for the project.
 - `report`: The LaTeX source code and output PDF for the project report.
