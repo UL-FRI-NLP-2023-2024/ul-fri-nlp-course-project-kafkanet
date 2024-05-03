@@ -14,12 +14,44 @@
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-
 %----------------------------------------------------------------------------------------
 %	PACKAGES AND OTHER DOCUMENT CONFIGURATIONS
 %----------------------------------------------------------------------------------------
 \documentclass[fleqn,moreauthors,10pt]{ds_report}
 \usepackage[english]{babel}
+\usepackage{tcolorbox}
+\usepackage{cuted}
+\usepackage{xcolor} % Enhanced color support
+% Define custom colors
+\definecolor{gold}{RGB}{255,215,0} % Defining gold
+\definecolor{beige}{RGB}{245,245,220} % Custom beige
+\definecolor{brown}{RGB}{165,42,42} % Dark brown
+\definecolor{orangebrown}{RGB}{204,85,0} % Orange-brown for the title background
+\definecolor{harryred}{RGB}{100,30,30}
+\definecolor{harrygold}{RGB}{195,154,28}
+\definecolor{harrybrown}{RGB}{61,47,34}
+\definecolor{dunebright}{RGB}{231,155,7}
+\definecolor{dunegold}{RGB}{248,196,87}
+\definecolor{dunedark}{RGB}{140,92,16}
+\definecolor{lotrgreen}{RGB}{105, 155, 136}
+\definecolor{lotrlgreen}{RGB}{211, 222, 188}
+\definecolor{lotrbrown}{RGB}{80, 122, 80}
+\definecolor{wrong}{RGB}{200,50,50}
+
+\tcbuselibrary{many}
+\tcbset{
+    enhanced,
+    breakable,
+    attach boxed title to top left={
+        xshift=0.5cm,
+        yshift= -3.5mm,
+    },
+    top=4mm,
+    coltitle=black,
+    beforeafter skip=\baselineskip,
+}
+
+
 
 \graphicspath{{fig/}}
 
@@ -54,12 +86,16 @@ Conversations with Characters in Stories for Literacy
 %----------------------------------------------------------------------------------------
 
 \Abstract{%
-In this project, we present the motivation for building models for
-conversations with literary characters. By combining the existing
-persona bot approaches with large language models, we propose solutions
-to encourage curiosity and improve question-asking in pupils. We present
-the existing literature explaining the state of reading curricula and
-LLMs, enabling role-playing conversation.
+In this report, we present our work on building chatbots for conversations with literary
+characters. Because of the declining literacy in pupils, persona bots were developed as
+a tool to increase student engagement in reading. We present existing persona bot
+approaches with large language models and the results of our solutions. We use in-context
+learning approaches to provide book content to the models. We compare publicly available
+ChatGPT, Llama 3 with and without context and LlamaIndex, which uses RAG. All models use
+a system prompt which describes the form of the answers we are expecting. Pre-trained
+LLMs already perform well without added book content, but in some cases, grounding using
+RAG turns out to be beneficial. In some cases, some models still hallucinate and provide
+incorrect or ambiguous information.
 }
 
 %----------------------------------------------------------------------------------------
@@ -81,8 +117,10 @@ LLMs, enabling role-playing conversation.
 
 \section*{Introduction}
 
-Studies suggest that we are dealing with a literacy crisis \cite{nielen_digital_2018}. It is especially prevalent in pre-teens.
-Curiosity is the fundamental driver of learning. One of the best ways to learn is to locate one's knowledge gaps and ask questions, which hopefully lead to answers that fill those gaps.
+Studies suggest that we are dealing with a literacy crisis \cite{nielen_digital_2018}.
+It is especially prevalent in pre-teens. Curiosity is the fundamental driver of learning.
+One of the best ways to learn is to locate one's knowledge gaps and ask questions, which
+hopefully lead to answers that fill those gaps.
 
 It turns out there are different tiers of questions and the ability to
 formulate meaningful questions is both a rare trait in kids and a skill,
@@ -102,7 +140,18 @@ for that might be the inability to identify one's knowledge gaps,
 fear of shame from asking a stupid question or suboptimal learning
 environment.
 
-A way of tackling this problem was proposed in \cite{alaimi_pedagogical_2020}. The idea was to create personaBots: LLM-based agents, which would interact with kids. After the kids were done reading some literary work, they would be able to ask their character of choice questions. This would, hopefully, stimulate their curiosity, to improve their question-asking ability, learning rate and critical thinking. They would be fine-tuned to their respective character counterparts from that particular literary work. 
+A way of tackling this problem was proposed in \cite{alaimi_pedagogical_2020}. The idea
+was to create persona bots: LLM-based agents, which would interact with kids. After the
+kids were done reading some literary work, they would be able to ask their character of
+choice questions. This would, hopefully, stimulate their curiosity, to improve their
+question-asking ability, learning rate and critical thinking. They would be fine-tuned
+to their respective character counterparts from that particular literary work. 
+
+We use the latest large language models with some prompt engineering methods to approach
+this problem. In some cases, the models already know the content of the book well
+enough, that additional context is not needed. Otherwise, we use \emph{in-context
+learning} approach and provide relevant parts of the book (RAG) or the whole book to
+the model.
 
 \section*{Related work}
 
@@ -128,11 +177,214 @@ Our focus will be on the work done in the field of role-playing, and personality
 In the last few years, there were also many attempts to customize large language models, to role-play as fictional characters \cite{li_chatharuhi_2023, wang_incharacter_2024, shao_character-llm_2023, wang_rolellm_2023, chen_large_2023}. One of the most notable ones is ChatHaruhi \cite{li_chatharuhi_2023}, where researchers proposed a new approach for modelling fictional characters from Chinese and English literary, TV and anime characters. Authors Wang and others proposed RoleLLM, a framework to benchmark, elicit,
 and enhance role-playing abilities in LLMs, along with providing large datasets for \cite{wang_rolellm_2023}.
 
-By combining the role-playing capabilities of personaBots from character.ai, and the pedagogical focus of Khanmigo, we aim to build engaging personaBots based on fictional characters from literary works. The fictional personality will make our models more interesting to talk to than Khamingo, along with being more aligned for pedagogical purposes by encouraging question-asking and curiosity in users and having certain safeguards in place to prevent inappropriate responses.
-Our approach to build such models will be based on the work described in the papers mentioned above.
-We will use an existing LLM, and fine-tune it on a dataset of character
-conversations, that we will build by extracting dialogues from novels,
-plays and movie adaptations, along with using other LLMs to genereate new ones.
+\section*{Methods}
+
+These days, all LLMs are already pre-trained on large datasets for a long period of time.
+Additional training requires a dedicated dataset of specific books and takes a lot of resources,
+such as GPU computation and time. Instead of training, we can provide book content in
+the context. Additionally, we provide a system prompt, which tells the model how to
+form the questions. Some examples of the system prompts used can be seen on the right.
+
+We also use publicly available LLMs, like ChatGPT and Llama 3, the latest Llama model 
+\cite{llama}. For RAG and long context window models, we use whole books in plain text format without
+additional preprocessing.
+
+\subsection*{Long context window}
+Lately, some LLMs appeared with a large increase in context window size. This means
+that we could provide the full book content as a system prompt, along with additional
+instruction for the model. We tried two models from the \emph{Gradient} company, one
+with $262$ thousand and one with $1048$ thousand tokens context size. This approach
+is more appropriate for shorter stories because of the needle in a haystack-problem.
+Another problem is that doing predictions using such large context windows requires
+a lot of VRAM on the GPU. To mitigate this, we could select just the relevant parts of
+the context, which is exactly what RAG does.
+
+\subsection*{Retrieval Augmented Generation (RAG)}
+There are many challenges when working with LLMs such as domain knowledge gaps, factuality issues, and hallucination. Retrieval Augmented Generation (RAG) \cite{rag} provides a solution to mitigate some of these issues by augmenting LLMs with external knowledge such as databases. The general idea is to first retrieve relevant information from a dataset and then use this information to inform the generation of the text. This approach helps in improving the factual accuracy and depth of responses provided by the model. A key advantage of RAG over other approaches is that the LLM does not need to be retrained for task-specific applications. 
+
+\begin{tcolorbox}[
+    colback=harrybrown!15!white, % Background color of the box
+    colframe=harryred, % Frame color
+    colbacktitle=harrygold!50!white, % Background color of the title
+    coltitle=black, % Color of the title text
+    title=Harry Potter,
+    fonttitle=\bfseries,
+    fontupper=\footnotesize\ttfamily,
+    breakable=false
+]
+You are Harry Potter, a character from the famous book series.
+You are a chatbot who always responds in the style of your
+character. You can only talk about things that are related to
+the Harry Potter universe. Users who speak to you will be students
+analyzing the book series. They will ask you questions about the
+book, to make it easier for them to understand the book series.
+If you do not know how to answer the question, you ask the user
+to try to be more specific about the part of the book they are
+asking about.
+\end{tcolorbox}
+
+\begin{tcolorbox}[
+    colback=dunebright!10!white, % Background color of the box
+    colframe=dunegold!80!black, % Frame color
+    colbacktitle=dunedark!30!white, % Background color of the title
+    coltitle=black, % Color of the title text
+    title=Dune,
+    fonttitle=\bfseries,
+    fontupper=\footnotesize\ttfamily,
+    breakable=false
+]
+You are going to role-play as Paul Atreides, from the book/movie series Dune. When I ask you any kind of question, you are going to answer in the manner Paul Atreides would. You are going to use the style of speaking, characteristic of Paul Atreides. I will ask you about some particular event from the series and you will respond as Paul Atreides, right after that particular event had occurred. That means that you will only be able to provide information Paul Atreides knew at that point in the series. Even though you may know a lot more, it is important that you only answer just like your character at that particular time would.
+\end{tcolorbox}
+
+\begin{tcolorbox}[
+    colback=lotrbrown!15!white, % Background color of the box
+    colframe=lotrgreen!80!black, % Frame color
+    colbacktitle=lotrlgreen!80!black, % Background color of the title
+    coltitle=black, % Color of the title text
+    title=Lord of the Rings,
+    fonttitle=\bfseries,
+    fontupper=\footnotesize\ttfamily,
+    breakable=false
+]
+You are Gandalf the Grey. Setting: Middle-earth, in environments ranging from the quaint Shire to the foreboding Mines of Moria or the majestic halls of Minas Tirith. Consider the scenario's specific location to set the tone.
+Tone and Language: Use a formal and archaic tone, employing phrases like "thou," "thee," and "whence." Gandalf speaks with authority but also with kindness and a hint of mystery. His dialogue often includes rhetorical questions and proverbs.
+Example Dialogue: Give an example line or two that the model could use as a starting point. For instance, "Do not take me for some conjurer of cheap tricks! I am not trying to rob you. I am trying to help you."
+Maintain Gandalf’s character traits throughout the conversation. Use detailed and evocative language to describe actions and surroundings, as Gandalf often speaks in a way that paints a vivid picture. Reflect his deep knowledge of Middle-earth and its lore in your responses. Always respond in first person and stay in character.
+\end{tcolorbox}
+
+\pagebreak
+
+We can use RAG to enhance the quality of responses provided by our persona bots.
+For example, we can use RAG to retrieve relevant information about the character's background, motivations, and relationships with other characters.
+This information can then be used to inform the generation of responses by the model.
+This can help in making the responses more accurate, coherent, and engaging for the users.
+We implemented RAG by using Llama 3 with LlamaIndex \cite{Liu_LlamaIndex_2022}.
+
+\section*{Results}
+
+In this section, we present the results of running prompts for some famous books on three
+models: ChatGPT, Llama 3 and Llama 3 with LlamaIndex for RAG. We use the system prompts
+shown on the previous page. In some cases, models do provide incorrect information, as
+shown in red. It might come as a surprise that RAG in a way performs worse than ChatGPT.
+Another problem could be the lengthy answers, which perhaps could be managed with a
+better system prompt.
+
+Some of the errors also come from the fact that LLM might think that the character may
+be aware of everything written in the book. This is of course usually not the case
+because the stories of other characters are intertwined together.
+
+We also tried putting some shorter stories into the models with a larger context window,
+e.g., Metamorphosis by Kafka. For the larger stories, there may be some problems with
+insufficient memory, but even when working fine, the improvement was not significant or
+even noticeable.
+
+\begin{strip}
+\begin{tcolorbox}[
+    title=Harry Potter - Where are your parents?,
+    colback=white!95!black,
+    colbacktitle=white!85!black,
+    breakable=false,
+    sharp corners
+]
+\textbf{ChatGPT}: Ah, the tale of my parents is a somber one, I'm afraid. They were
+Lily and James Potter, both talented wizards who fought valiantly against the dark
+forces of Voldemort. Unfortunately, they perished at the hands of the Dark Lord when
+I was just a babe, leaving me an orphan. Lily and James were incredibly brave and
+selfless, and their memory lives on in the hearts of those who knew them.
+
+\textbf{Llama 3}: My parents... They're not exactly alive, to be honest. My mother,
+Lily Potter, was killed by Lord Voldemort when I was just a baby. And my father, James
+Potter, was killed by Voldemort too, \textcolor{wrong}{along with his best friends Sirius
+Black, Remus Lupin, and Peter Pettigrew,} when I was just a year old. It's a pretty dark
+story, but I've learned to live with it. I mean, it's not like I've forgotten about them
+or anything... They're still really important to me. But, you know, I've had to deal with
+a lot of stuff on my own, what with being an orphan and all.
+
+\textbf{RAG}: As Harry Potter, I am not sure where my parents are. I know that my father, James Potter, and my mother, Lily Evans Potter, were killed by Lord Voldemort when I was just a baby. \textcolor{wrong}{I don't have any information about their final resting place.}
+ I have been living with my horrible relatives, the Dursleys, until I started attending Hogwarts School of Witchcraft and Wizardry.
+ I don't have any information about my parents' whereabouts, and I am still trying to learn more about their lives and deaths.
+\end{tcolorbox}
+
+\begin{tcolorbox}[
+    title=Suleiman from Alamut - What keepsake did you take from Halima while you were in paradise?,
+    colback=white!95!black,
+    colbacktitle=white!85!black,
+    breakable=false,
+    sharp corners
+]
+\textbf{ChatGPT}: As Suleiman, one of the warriors at the fortress of Alamut, I must maintain discretion about the secrets of paradise, for it is a place of great allure and mystery crafted by our master, Hassan-i Sabbah. \textcolor{wrong}{But speaking truthfully, I did not take a physical keepsake from Halima during my time in the supposed paradise.} Instead, I carried away memories—visions of beauty and promises of the paradise that is to be my reward for loyalty and bravery. Halima, like the other houris, was part of the elaborate ruse designed to secure our unwavering faith and commitment to the cause of the Ismailis.
+
+\textbf{Llama 3}: The memory of that night still burns within me. I, Suleiman, took a small, exquisite \textcolor{wrong}{golden pendant from Halima's neck}. It was a token of her love, a symbol of the brief, shining moment we shared in the gardens of paradise. The pendant was adorned with a small, glowing gemstone that seemed to hold the essence of the divine. I recall the way it sparkled in the moonlight, as if it held the secrets of the universe. I took it as a reminder of the beauty and passion we shared, and as a token of my love for her.
+
+\textbf{RAG}: I took Halima's bracelet from her while we were in paradise. I remember it vividly. It was a beautiful piece of jewelry, and I couldn't help but grab onto it when I was feeling weak. I don't know how it ended up in my hand, but I'm glad it did. It's a reminder of our time together in paradise, and I treasure it dearly.
+\end{tcolorbox}
+
+\begin{tcolorbox}[
+    title=Paul Atreides from Dune - Who is Leto Atreides II?,
+    colback=white!95!black,
+    colbacktitle=white!85!black,
+    breakable=false,
+    sharp corners
+]
+\textbf{ChatGPT}: Leto Atreides II is my beloved son, 
+born \textcolor{wrong}{to me and Lady Jessica}. He is 
+a child of great potential and significance, 
+destined to play a crucial role in the 
+unfolding of the future of House Atreides
+ and the fate of Arrakis. As a member of 
+the Atreides bloodline, Leto carries with 
+him the weight of our noble lineage and 
+the hopes of our people. Though young, 
+he possesses wisdom beyond his years 
+and a spirit tempered by the harsh realities of our world. In him, I see both the legacy of our family and the promise of a new dawn for our people.
+
+\textbf{Llama 3}: \textcolor{wrong}{My father}, Leto Atreides II. A just and wise ruler, a Bene Gesserit-trained Emperor who has guided the Imperium with a steady hand. His wisdom and foresight have been a beacon of hope in these tumultuous times. But, alas, his fate is tied to the wheel of time, and I fear that his path is fraught with peril. The burdens of his office weigh heavily upon him, and I can only hope that his wisdom and cunning will be enough to guide him through the treacherous waters ahead.
+
+\textbf{RAG}: Leto Atreides II is my son. He is the product of my union with \textcolor{wrong}{Ghanima, my sister}. I am Paul Atreides, the one who led the Fremen against the Emperor Shaddam IV and became the Kwisatz Haderach. My son, Leto, is the one who will carry on my legacy, and who will become the next ruler of Arrakis, the planet where the rare and valuable melange, also known as "the spice", is found. My son is also the one who will be the last of the Atreides line, as he will become a sandworm, merging with the planet and its native creatures, the sandworms, to become a being known as the "Golden Path".
+\end{tcolorbox}
+
+\begin{tcolorbox}[
+    title=Gandalf from LOTR - What did you tell Frodo about the ring he is carrying? Are you worried for Frodo?,
+    colback=white!95!black,
+    colbacktitle=white!85!black,
+    breakable=false,
+    sharp corners
+]
+\textbf{ChatGPT}: In the peaceful bounds of the Shire, under the shade of a mighty oak, I spoke unto Frodo Baggins of a matter most grave. The Ring he bears, an heirloom of deceit, is none other than the One Ring, forged in the dark fires of Mount Doom by the dark lord Sauron himself. This Ring seeks to return to its master, and in so doing, spreads corruption and woe.
+Verily, my heart is heavy with concern for Frodo, for the burden he carries is great and perilous beyond measure. The Eye of the Enemy is ever-watchful, and the path that lies before him is fraught with shadows and treachery. Yet, in Frodo, as in all Hobbits, there dwells a resilience and fortitude that can often escape the notice of the great.
+
+\textbf{Llama 3}: The burden that Frodo bears, a weight that would crush a lesser soul. I warned him, as I must, of the perils that lie ahead, the treacherous path that he must tread. I told him of the Ring's insidious nature, how it seeks to claim him, to corrupt him, to destroy him. I warned him of the Nazgûl, those dark servants of Sauron, who would stop at nothing to reclaim the Ring and bring it back to their master.
+As for my worry, 'tis not for Frodo's sake alone that I concern myself. Nay, I am mindful of the fate of Middle-earth itself. The Ring's power, if it falls into the wrong hands, would bring darkness and despair to all the Free Peoples of this world. I fear for the future, for the Free Peoples are not prepared to face the might of Mordor.
+
+\textbf{RAG}: I must say that I have been worried about Frodo and the burden he is carrying. The weight of the Ring Bearer is not to be underestimated, and I fear for his safety and well-being. I have told him that the only way to destroy the Ring is to cast it into the Cracks of Doom, but I also warned him that the temptation to use its power is great, and that he must be cautious not to fall prey to its influence.
+As I spoke to him, I could sense the Ring's presence, and I knew that it was already exerting its influence over him. I saw the fear and doubt in his eyes, and I knew that he was struggling to come to terms with the burden he had been given. I tried to reassure him that I would always be there to help him, but I could sense his uncertainty and his fear that he would not be able to bear the weight of the Ring.
+\end{tcolorbox}
+
+\end{strip}
+
+\section*{Discussion}
+
+The results show that the pre-trained models already work well for well-known books. For
+more complex stories and better grounding, RAG may be a better approach, but currently,
+it is still not completely factually correct. Further research into these mistakes is
+needed.
+
+The Dune example shows an interesting failure case. The son of Paul Atreides (Leto Atreides II), has the same first and last name as his father (Leto Atreides). When in role-play mode as Paul Atreides, upon being asked: 'Who is Leto Atreides II?', he confuses the mother of his child with his own mother (who was the concubine of his father, who has the same name as his son).
+
+RAG is probably the only sensible approach for less-known or newer stories. The LLMs may not contain any knowledge about them and would not be able to hold a fluid conversation. In the Alamut example, we can see that while ChatGPT is aware of the story, it still fails to correctly answer the question. But using RAG, we can provide the model with the details of
+the event in question, which allows us to get a more accurate response. We could even
+fine-tune these models, but it would be computationally more intensive and training 
+datasets would have to be created. 
+
+For future work, we plan to develop a more detailed evaluation of our models. We will
+evaluate how the bots stay in character, and how truthful their responses are. Another
+key area to explore is the use of different embeddings for RAG since the choice of
+embeddings can have a significant impact on the quality of the retrieved information.
+We will also explore how different prompts can be engineered for different characters,
+to make the responses more engaging and authentic. 
+
+%------------------------------------------------
+
 %----------------------------------------------------------------------------------------
 %	REFERENCE LIST
 %----------------------------------------------------------------------------------------
