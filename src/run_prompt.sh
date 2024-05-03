@@ -10,4 +10,4 @@
 #SBATCH --mem=64G
 
 . venv/bin/activate
-python llama.py
+python src/llama.py

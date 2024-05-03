@@ -11,4 +11,4 @@
 #SBATCH --nodelist=gwn[01-07]
 
 . venv/bin/activate
-python gradient.py
+python src/gradient.py
