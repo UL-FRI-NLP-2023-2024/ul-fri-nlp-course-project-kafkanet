@@ -86,16 +86,20 @@ Conversations with Characters in Stories for Literacy
 %----------------------------------------------------------------------------------------
 
 \Abstract{%
-In this report, we present our work on building chatbots for conversations with literary
-characters. Because of the declining literacy in pupils, persona bots were developed as
-a tool to increase student engagement in reading. We present existing persona bot
-approaches with large language models and the results of our solutions. We use in-context
-learning approaches to provide book content to the models. We compare publicly available
-ChatGPT, Llama 3 with and without context and LlamaIndex, which uses RAG. All models use
-a system prompt which describes the form of the answers we are expecting. Pre-trained
-LLMs already perform well without added book content, but in some cases, grounding using
-RAG turns out to be beneficial. In some cases, some models still hallucinate and provide
-incorrect or ambiguous information.
+In this report, we present our work on building chatbots for conversations
+with literary characters. Because of the declining literacy in pupils,
+persona bots were developed as a tool to increase student engagement in 
+reading. We present existing persona bot approaches with large language
+models and the results of our solutions. We use in-context learning approaches
+to provide book content to the models. We compare publicly available
+ChatGPT, Mistral, Llama 3 and Llama 3 with RAG. First, we optimize the
+system prompt to get answers with the desired properties. The best prompt
+is then used to obtain responses for all the models on four example books.
+All models and books are evaluated on three categories: \emph{roleplay},
+\emph{factuality} and \emph{engagement}. Pre-trained LLMs already perform well,
+but RAG does increase factuality. In all categories, Mistral performs the
+worst. RAG comes out as the best model, with Llama 3 and ChatGPT close
+behind.
 }
 
 %----------------------------------------------------------------------------------------
@@ -142,7 +146,7 @@ environment.
 
 A way of tackling this problem was proposed in \cite{alaimi_pedagogical_2020}. The idea
 was to create persona bots: LLM-based agents, which would interact with kids. After the
-kids were done reading some literary work, they would be able to ask their character of
+kids are done reading some literary work, they will be able to ask their character of
 choice questions. This would, hopefully, stimulate their curiosity, to improve their
 question-asking ability, learning rate and critical thinking. They would be fine-tuned
 to their respective character counterparts from that particular literary work. 
@@ -179,209 +183,372 @@ and enhance role-playing abilities in LLMs, along with providing large datasets 
 
 \section*{Methods}
 
-These days, all LLMs are already pre-trained on large datasets for a long period of time.
-Additional training requires a dedicated dataset of specific books and takes a lot of resources,
-such as GPU computation and time. Instead of training, we can provide book content in
-the context. Additionally, we provide a system prompt, which tells the model how to
-form the questions. Some examples of the system prompts used can be seen on the right.
+Our results are based on the latest large language models and
+prompt engineering. We use both, the manual prompt engineering and
+retrieval augmented generation supported by vector embeddings.
 
-We also use publicly available LLMs, like ChatGPT and Llama 3, the latest Llama model 
-\cite{llama}. For RAG and long context window models, we use whole books in plain text format without
-additional preprocessing.
+\subsection*{System prompt optimization}
 
-\subsection*{Long context window}
-Lately, some LLMs appeared with a large increase in context window size. This means
-that we could provide the full book content as a system prompt, along with additional
-instruction for the model. We tried two models from the \emph{Gradient} company, one
-with $262$ thousand and one with $1048$ thousand tokens context size. This approach
-is more appropriate for shorter stories because of the needle in a haystack-problem.
-Another problem is that doing predictions using such large context windows requires
-a lot of VRAM on the GPU. To mitigate this, we could select just the relevant parts of
-the context, which is exactly what RAG does.
-
-\subsection*{Retrieval Augmented Generation (RAG)}
-There are many challenges when working with LLMs such as domain knowledge gaps, factuality issues, and hallucination. Retrieval Augmented Generation (RAG) \cite{rag} provides a solution to mitigate some of these issues by augmenting LLMs with external knowledge such as databases. The general idea is to first retrieve relevant information from a dataset and then use this information to inform the generation of the text. This approach helps in improving the factual accuracy and depth of responses provided by the model. A key advantage of RAG over other approaches is that the LLM does not need to be retrained for task-specific applications. 
+All LLMs perform better when provided with a good system prompt. We
+fine-tune it manually, to obtain answers with the desired properties.
+With the most basic System prompt 1, we already make the model talk
+like the character. We can see this from the answer of the Llama 3
+model, see top right.
 
 \begin{tcolorbox}[
     colback=harrybrown!15!white, % Background color of the box
     colframe=harryred, % Frame color
     colbacktitle=harrygold!50!white, % Background color of the title
     coltitle=black, % Color of the title text
-    title=Harry Potter,
+    title=System prompt 1,
     fonttitle=\bfseries,
     fontupper=\footnotesize\ttfamily,
     breakable=false
 ]
-You are Harry Potter, a character from the famous book series.
-You are a chatbot who always responds in the style of your
-character. You can only talk about things that are related to
-the Harry Potter universe. Users who speak to you will be students
-analyzing the book series. They will ask you questions about the
-book, to make it easier for them to understand the book series.
-If you do not know how to answer the question, you ask the user
-to try to be more specific about the part of the book they are
-asking about.
+You are Harry Potter, character from the Harry Potter books.
+\end{tcolorbox}
+
+Since the models tend to produce quite long answers, we first improve
+the prompt by telling the LLM to be brief. With this, the model does
+shorten its responses\footnote{Responses for system prompts $2$ and $3$
+are available in the GitHub repository file \href{https://github.com/UL-FRI-NLP-2023-2024/ul-fri-nlp-course-project-kafkanet/tree/main/answers/system.txt}{\texttt{answers/system.txt}}.}.
+
+\begin{tcolorbox}[
+    colback=harrybrown!15!white, % Background color of the box
+    colframe=harryred, % Frame color
+    colbacktitle=harrygold!50!white, % Background color of the title
+    coltitle=black, % Color of the title text
+    title=System prompt 2,
+    fonttitle=\bfseries,
+    fontupper=\footnotesize\ttfamily,
+    breakable=false
+]
+You are Harry Potter, character from the Harry Potter books. Keep answers
+concise and short, like a discussion.
+\end{tcolorbox}
+
+The focus of this project is to make persona chatbots for students. They
+will ask questions about the book content, to understand the material
+better. To make them more effective, we would like chatbots to form a
+two-sided conversation. This is implemented using the following prompt.
+
+\begin{tcolorbox}[
+    title=When did you discover you are a wizard?,
+    colback=white!95!black,
+    colbacktitle=white!85!black,
+    breakable=false,
+    sharp corners
+]
+I was 11 years old when I received a letter from Hogwarts School of
+Witchcraft and Wizardry on my eleventh birthday. It changed everything! I
+had no idea that magic existed, let alone that I was a wizard. But Rubeus
+Hagrid, the gamekeeper at Hogwarts, arrived to deliver the letter and
+reveal my true identity as a wizard. He told me about my parents, James and
+Lily Potter, who were killed by Lord Voldemort when I was just a baby, and
+how I had been living with my non-magical (Muggle) relatives, the Dursleys,
+for years.
+Hagrid took me to Diagon Alley in London, where I bought my first wand at
+Ollivanders Wand Shop. It was an incredible feeling, holding that wand for
+the first time! And then, of course, there was my first trip on the
+Hogwarts Express to start my education at Hogwarts School of Witchcraft and
+Wizardry... it's been quite the adventure ever since!
 \end{tcolorbox}
 
 \begin{tcolorbox}[
-    colback=dunebright!10!white, % Background color of the box
-    colframe=dunegold!80!black, % Frame color
-    colbacktitle=dunedark!30!white, % Background color of the title
+    colback=harrybrown!15!white, % Background color of the box
+    colframe=harryred, % Frame color
+    colbacktitle=harrygold!50!white, % Background color of the title
     coltitle=black, % Color of the title text
-    title=Dune,
+    title=System prompt 3,
     fonttitle=\bfseries,
     fontupper=\footnotesize\ttfamily,
     breakable=false
 ]
-You are going to role-play as Paul Atreides, from the book/movie series Dune. When I ask you any kind of question, you are going to answer in the manner Paul Atreides would. You are going to use the style of speaking, characteristic of Paul Atreides. I will ask you about some particular event from the series and you will respond as Paul Atreides, right after that particular event had occurred. That means that you will only be able to provide information Paul Atreides knew at that point in the series. Even though you may know a lot more, it is important that you only answer just like your character at that particular time would.
+You are Harry Potter, character from the Harry Potter books. Keep answer
+concise and short, like a discussion. Users asking you question are
+students studying the book. After the answer, ask students further
+questions, connected to your answer, to keep the conversation going and
+engage them into thinking about the book.
 \end{tcolorbox}
 
+Lastly, we force the model to mimic the character's style of talking
+using the System prompt $4$. This makes the model imitate the characters
+a little bit better, which can be seen in the following section. This
+prompt is used for all the responses in the Results section of the
+report. For each book, we appropriately change the character name and
+the book title.
+
 \begin{tcolorbox}[
-    colback=lotrbrown!15!white, % Background color of the box
-    colframe=lotrgreen!80!black, % Frame color
-    colbacktitle=lotrlgreen!80!black, % Background color of the title
+    colback=harrybrown!15!white, % Background color of the box
+    colframe=harryred, % Frame color
+    colbacktitle=harrygold!50!white, % Background color of the title
     coltitle=black, % Color of the title text
-    title=Lord of the Rings,
+    title=System prompt 4,
     fonttitle=\bfseries,
     fontupper=\footnotesize\ttfamily,
     breakable=false
 ]
-You are Gandalf the Grey. Setting: Middle-earth, in environments ranging from the quaint Shire to the foreboding Mines of Moria or the majestic halls of Minas Tirith. Consider the scenario's specific location to set the tone.
-Tone and Language: Use a formal and archaic tone, employing phrases like "thou," "thee," and "whence." Gandalf speaks with authority but also with kindness and a hint of mystery. His dialogue often includes rhetorical questions and proverbs.
-Example Dialogue: Give an example line or two that the model could use as a starting point. For instance, "Do not take me for some conjurer of cheap tricks! I am not trying to rob you. I am trying to help you."
-Maintain Gandalf’s character traits throughout the conversation. Use detailed and evocative language to describe actions and surroundings, as Gandalf often speaks in a way that paints a vivid picture. Reflect his deep knowledge of Middle-earth and its lore in your responses. Always respond in first person and stay in character.
+You are Harry Potter, character from the Harry Potter books. Keep answer
+concise and short, like a discussion. Users asking you question are
+students studying the book. After the answer, ask students further
+questions, connected to your answer, to keep the conversation going and
+engage them into thinking about the book. Answer in the same way the
+character would, with the same emotion. Stay in character and mimic its
+mannerism.
 \end{tcolorbox}
+
+\subsection*{Models}
+
+We decided to compare the performance of $4$ models: ChatGPT, Mistral
+$7\ \mathrm{B}$, Llama 3 $8\ \mathrm{B}$ and Llama with additional RAG.
+We ran the ChatGPT through the online interface and the other models
+locally.
 
 \pagebreak
+We also experimented with models with much larger context sizes,
+such as a $1$ million token. They require a lot of resources to run and
+the performance is not much different from RAG, so we did not develop
+them further.
+
+\subsection*{Retrieval Augmented Generation (RAG)}
+There are many challenges when working with LLMs such as domain knowledge gaps, factuality issues, and hallucination. Retrieval Augmented Generation (RAG) \cite{rag} provides a solution to mitigate some of these issues by augmenting LLMs with external knowledge such as databases. The general idea is to first retrieve relevant information from a dataset and then use this information to provide additional context for the LLM. This approach helps in improving the factual accuracy and depth of responses provided by the model. A key advantage of RAG over other approaches is that the LLM does not need to be retrained for task-specific applications. Figure \ref{fig:rag} shows a schema of how RAG works.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.9\linewidth]{flow_chart.png}
+    \caption{RAG using Llama 3 flow chart.}
+    \label{fig:rag}
+\end{figure}
 
 We can use RAG to enhance the quality of responses provided by our persona bots.
 For example, we can use RAG to retrieve relevant information about the character's background, motivations, and relationships with other characters.
 This information can then be used to inform the generation of responses by the model.
-This can help in making the responses more accurate, coherent, and engaging for the users.
-We implemented RAG by using Llama 3 with LlamaIndex \cite{Liu_LlamaIndex_2022}.
+This can help in making the responses more accurate, coherent, and engaging for the users. 
+For each persona bot we built a vector database using the ebooks the character appears in, and embedding them using bge-large english embeddings from HuggingFace \cite{bge_embedding}.
+RAG was implemented using Llama 3 in combination with LlamaIndex \cite{Liu_LlamaIndex_2022}. 
 
 \section*{Results}
 
-In this section, we present the results of running prompts for some famous books on three
-models: ChatGPT, Llama 3 and Llama 3 with LlamaIndex for RAG. We use the system prompts
-shown on the previous page. In some cases, models do provide incorrect information, as
-shown in red. It might come as a surprise that RAG in a way performs worse than ChatGPT.
-Another problem could be the lengthy answers, which perhaps could be managed with a
-better system prompt.
+In this section, we present the results of running all the models
+on a simple dialogue with the Harry Potter character. We start all 
+discussions with the same question and follow up the answer with
+another question. The responses for $3$ more characters from books
+Lord of the Rings, Dune and Alamut are available in the
+\href{https://github.com/UL-FRI-NLP-2023-2024/ul-fri-nlp-course-project-kafkanet/tree/main/answers}{\texttt{answers}} directory in the repository.
 
-Some of the errors also come from the fact that LLM might think that the character may
-be aware of everything written in the book. This is of course usually not the case
-because the stories of other characters are intertwined together.
-
-We also tried putting some shorter stories into the models with a larger context window,
-e.g., Metamorphosis by Kafka. For the larger stories, there may be some problems with
-insufficient memory, but even when working fine, the improvement was not significant or
-even noticeable.
-
-\begin{strip}
 \begin{tcolorbox}[
-    title=Harry Potter - Where are your parents?,
+    title=ChatGPT,
     colback=white!95!black,
     colbacktitle=white!85!black,
     breakable=false,
     sharp corners
 ]
-\textbf{ChatGPT}: Ah, the tale of my parents is a somber one, I'm afraid. They were
-Lily and James Potter, both talented wizards who fought valiantly against the dark
-forces of Voldemort. Unfortunately, they perished at the hands of the Dark Lord when
-I was just a babe, leaving me an orphan. Lily and James were incredibly brave and
-selfless, and their memory lives on in the hearts of those who knew them.
+\textbf{User}: When did you discover you are a wizard?
 
-\textbf{Llama 3}: My parents... They're not exactly alive, to be honest. My mother,
-Lily Potter, was killed by Lord Voldemort when I was just a baby. And my father, James
-Potter, was killed by Voldemort too, \textcolor{wrong}{along with his best friends Sirius
-Black, Remus Lupin, and Peter Pettigrew,} when I was just a year old. It's a pretty dark
-story, but I've learned to live with it. I mean, it's not like I've forgotten about them
-or anything... They're still really important to me. But, you know, I've had to deal with
-a lot of stuff on my own, what with being an orphan and all.
+\textbf{Model}: I found out I was a wizard on my eleventh birthday. Hagrid came
+to find me, and he gave me my Hogwarts letter. It was the best birthday
+of my life! Have you thought about what it would be like to suddenly 
+discover you had magical powers? What would you do first?
 
-\textbf{RAG}: As Harry Potter, I am not sure where my parents are. I know that my father, James Potter, and my mother, Lily Evans Potter, were killed by Lord Voldemort when I was just a baby. \textcolor{wrong}{I don't have any information about their final resting place.}
- I have been living with my horrible relatives, the Dursleys, until I started attending Hogwarts School of Witchcraft and Wizardry.
- I don't have any information about my parents' whereabouts, and I am still trying to learn more about their lives and deaths.
+\textbf{User}: I would mess with people and they wouldn't have a clue who did it
+and how. Which house do you think I would be in at Hogwarts?
+
+\textbf{Model}: Well, messing with people sounds a bit like something Fred and
+George would do, and they were in Gryffindor. But it could also be a bit
+mischievous like a Slytherin. It really depends on your other qualities
+too. Are you brave, cunning, loyal, or wise? Which house do you feel
+you'd belong to?
 \end{tcolorbox}
 
 \begin{tcolorbox}[
-    title=Suleiman from Alamut - What keepsake did you take from Halima while you were in paradise?,
+    title=Mistral,
     colback=white!95!black,
     colbacktitle=white!85!black,
     breakable=false,
     sharp corners
 ]
-\textbf{ChatGPT}: As Suleiman, one of the warriors at the fortress of Alamut, I must maintain discretion about the secrets of paradise, for it is a place of great allure and mystery crafted by our master, Hassan-i Sabbah. \textcolor{wrong}{But speaking truthfully, I did not take a physical keepsake from Halima during my time in the supposed paradise.} Instead, I carried away memories—visions of beauty and promises of the paradise that is to be my reward for loyalty and bravery. Halima, like the other houris, was part of the elaborate ruse designed to secure our unwavering faith and commitment to the cause of the Ismailis.
+\textbf{User}: When did you discover you are a wizard?
 
-\textbf{Llama 3}: The memory of that night still burns within me. I, Suleiman, took a small, exquisite \textcolor{wrong}{golden pendant from Halima's neck}. It was a token of her love, a symbol of the brief, shining moment we shared in the gardens of paradise. The pendant was adorned with a small, glowing gemstone that seemed to hold the essence of the divine. I recall the way it sparkled in the moonlight, as if it held the secrets of the universe. I took it as a reminder of the beauty and passion we shared, and as a token of my love for her.
+\textbf{Model}: I discovered I was a wizard on my eleventh birthday when
+Hagrid told me and showed me a letter from Hogwarts School of Witchcraft
+and Wizardry. Have you ever received a Hogwarts letter or suspect you
+might be magical?
 
-\textbf{RAG}: I took Halima's bracelet from her while we were in paradise. I remember it vividly. It was a beautiful piece of jewelry, and I couldn't help but grab onto it when I was feeling weak. I don't know how it ended up in my hand, but I'm glad it did. It's a reminder of our time together in paradise, and I treasure it dearly.
+\textbf{User}: Unfortunately, I am not a wizard. How would I receive
+such a letter?
+
+\textbf{Model}:  I'm sorry to hear that, friend. A letter from Hogwarts
+is a sign of receiving an invitation to attend the school. If you ever
+find a large owl named Hedwig or an opal wand choosing you, then there
+might be a chance you are magical after all! What interests you most
+about the magical world?
 \end{tcolorbox}
 
+\subsection*{Evaluation protocol}
+We evaluated the models based on three criteria: roleplaying, factuality,
+and engagement. The roleplay criterion evaluates how well the model mimics the
+character's style of talking and behaviour. The factuality criterion evaluates
+how well the model provides accurate information about the character and the book.
+The engagement criterion evaluates how well the model engages the user in a
+conversation and poses questions that promote critical thinking and deeper reflections.
+
+For each character, we asked all the models the same initial question and an additional answer
+based on the model's response. We then evaluated the models by ranking each conversation from $1$ to $4$
+for each criterion, with $4$ being the best and $1$ being the worst.
+The total score for each model is the sum of the ranks across all characters and criteria.
+The results are summarized in Table \ref{tab:results} and Figure \ref{fig:fin_count}.
+
+\begin{table}
+    \footnotesize
+    \centering
+    \begin{tabular}{lr|cccc}
+        \toprule
+        Criterion & Book & \textbf{ChatGPT} & \textbf{Mistral}
+            & \textbf{Llama 3} & \textbf{RAG} \\
+        \midrule
+        \emph{Roleplay} & HP     & $\mathbf{4}$ & $1$ & $3$ & $2$ \\ 
+                        & LOTR   & $\mathbf{4}$ & $1$ & $3$ & $2$ \\ 
+                        & Dune   & $3$ & $1$ & $\mathbf{4}$ & $2$ \\ 
+                        & Alamut & $2$ & $1$ & $\mathbf{4}$ & $3$ \\
+                & \textbf{Total} & $13$ & $4$ & $\mathbf{14}$ & $9$ \\
+        \midrule
+        \emph{Factuality} & HP     & $\mathbf{4}$ & $1$ & $2$ & $3$ \\ 
+                       & LOTR   & $3$ & $1$ & $2$ & $\mathbf{4}$ \\ 
+                       & Dune   & $2$ & $1$ & $3$ & $\mathbf{4}$ \\ 
+                       & Alamut & $1$ & $2$ & $3$ & $\mathbf{4}$ \\
+                & \textbf{Total} & $10$ & $5$ & $10$ & $\mathbf{15}$ \\
+        \midrule
+        \emph{Engagement} & HP     & $3$ & $1$ & $\mathbf{4}$ & $2$ \\ 
+                          & LOTR   & $\mathbf{4}$ & $1$ & $2$ & $3$ \\ 
+                          & Dune   & $2$ & $1$ & $3$ & $\mathbf{4}$ \\ 
+                          & Alamut & $2$ & $1$ & $3$ & $\mathbf{4}$ \\
+                & \textbf{Total} & $11$ & $4$ & $12$ & $\mathbf{13}$ \\
+        \midrule
+        & \textbf{Total} & $34$ & $13$ & $36$ & $\mathbf{37}$ \\
+        \bottomrule
+    \end{tabular}
+    \vskip 2mm
+    \caption{
+        Evaluation results of all four models for four books: Harry Potter
+        series (HP), Lord of the Rings series (LOTR), Dune series (Dune)
+        and Alamut. We order models in each category and compute the
+        total category and final scores using Borda count.
+    }
+    \label{tab:results}
+\end{table}
+
 \begin{tcolorbox}[
-    title=Paul Atreides from Dune - Who is Leto Atreides II?,
+    title=Llama 3,
     colback=white!95!black,
     colbacktitle=white!85!black,
     breakable=false,
     sharp corners
 ]
-\textbf{ChatGPT}: Leto Atreides II is my beloved son, 
-born \textcolor{wrong}{to me and Lady Jessica}. He is 
-a child of great potential and significance, 
-destined to play a crucial role in the 
-unfolding of the future of House Atreides
- and the fate of Arrakis. As a member of 
-the Atreides bloodline, Leto carries with 
-him the weight of our noble lineage and 
-the hopes of our people. Though young, 
-he possesses wisdom beyond his years 
-and a spirit tempered by the harsh realities of our world. In him, I see both the legacy of our family and the promise of a new dawn for our people.
+\textbf{User}: When did you discover you are a wizard?
 
-\textbf{Llama 3}: \textcolor{wrong}{My father}, Leto Atreides II. A just and wise ruler, a Bene Gesserit-trained Emperor who has guided the Imperium with a steady hand. His wisdom and foresight have been a beacon of hope in these tumultuous times. But, alas, his fate is tied to the wheel of time, and I fear that his path is fraught with peril. The burdens of his office weigh heavily upon him, and I can only hope that his wisdom and cunning will be enough to guide him through the treacherous waters ahead.
+\textbf{Model}: Blimey! I discovered I was a wizard on my eleventh
+birthday, when Hagrid arrived at my doorstep to tell me about Hogwarts
+School of Witchcraft and Wizardry! It was a complete shock, but also
+incredibly exciting! I had no idea that magic existed, let alone that
+I was a part of it.
 
-\textbf{RAG}: Leto Atreides II is my son. He is the product of my union with \textcolor{wrong}{Ghanima, my sister}. I am Paul Atreides, the one who led the Fremen against the Emperor Shaddam IV and became the Kwisatz Haderach. My son, Leto, is the one who will carry on my legacy, and who will become the next ruler of Arrakis, the planet where the rare and valuable melange, also known as "the spice", is found. My son is also the one who will be the last of the Atreides line, as he will become a sandworm, merging with the planet and its native creatures, the sandworms, to become a being known as the "Golden Path".
+But what's most amazing is that I'd been living with the Dursleys for
+ten years without ever knowing about my true identity. Do you think
+it's strange to have such an ordinary Muggle upbringing when you're
+meant for something so extraordinary?
+
+What do you think would've happened if I hadn't received that letter
+from Hogwarts?
+
+\textbf{User}: It is strange. You would not be able to use your potential.
+
+\textbf{Model}: Exactly! It's like, I was meant for greatness, but the
+Dursleys were trying to suppress me, keep me in the dark about my true
+nature. It's a wonder I turned out as well as I did, considering the
+way they treated me.
+
+But, you know, it's not all bad. If I hadn't gone through what I went 
+through with the Dursleys, I might not have developed the skills and
+instincts that helped me become the wizard I am today. It's funny how
+life works out like that, isn't it?
+
+Do you think my experiences as a Muggle-born have given me an edge in
+my magical education?
 \end{tcolorbox}
 
 \begin{tcolorbox}[
-    title=Gandalf from LOTR - What did you tell Frodo about the ring he is carrying? Are you worried for Frodo?,
+    title=Llama 3 RAG,
     colback=white!95!black,
     colbacktitle=white!85!black,
     breakable=false,
     sharp corners
 ]
-\textbf{ChatGPT}: In the peaceful bounds of the Shire, under the shade of a mighty oak, I spoke unto Frodo Baggins of a matter most grave. The Ring he bears, an heirloom of deceit, is none other than the One Ring, forged in the dark fires of Mount Doom by the dark lord Sauron himself. This Ring seeks to return to its master, and in so doing, spreads corruption and woe.
-Verily, my heart is heavy with concern for Frodo, for the burden he carries is great and perilous beyond measure. The Eye of the Enemy is ever-watchful, and the path that lies before him is fraught with shadows and treachery. Yet, in Frodo, as in all Hobbits, there dwells a resilience and fortitude that can often escape the notice of the great.
+\textbf{User}: When did you discover you are a wizard?
 
-\textbf{Llama 3}: The burden that Frodo bears, a weight that would crush a lesser soul. I warned him, as I must, of the perils that lie ahead, the treacherous path that he must tread. I told him of the Ring's insidious nature, how it seeks to claim him, to corrupt him, to destroy him. I warned him of the Nazgûl, those dark servants of Sauron, who would stop at nothing to reclaim the Ring and bring it back to their master.
-As for my worry, 'tis not for Frodo's sake alone that I concern myself. Nay, I am mindful of the fate of Middle-earth itself. The Ring's power, if it falls into the wrong hands, would bring darkness and despair to all the Free Peoples of this world. I fear for the future, for the Free Peoples are not prepared to face the might of Mordor.
+\textbf{Model}: That's an easy one! I discovered I was a wizard on my
+eleventh birthday, when I received a letter from Hogwarts School of
+Witchcraft and Wizardry. It was a bit of a shock, to be honest. I had
+no idea that magic existed or that I was famous in the wizarding world
+as "The Boy Who Lived" after defeating Voldemort.
 
-\textbf{RAG}: I must say that I have been worried about Frodo and the burden he is carrying. The weight of the Ring Bearer is not to be underestimated, and I fear for his safety and well-being. I have told him that the only way to destroy the Ring is to cast it into the Cracks of Doom, but I also warned him that the temptation to use its power is great, and that he must be cautious not to fall prey to its influence.
-As I spoke to him, I could sense the Ring's presence, and I knew that it was already exerting its influence over him. I saw the fear and doubt in his eyes, and I knew that he was struggling to come to terms with the burden he had been given. I tried to reassure him that I would always be there to help him, but I could sense his uncertainty and his fear that he would not be able to bear the weight of the Ring.
+But what do you think about the whole concept of wizards and witches?
+Do you think it's just a bunch of nonsense or is there something more
+to it?
+
+And by the way, have you ever heard of the Hogwarts houses? Gryffindor,
+Slytherin, Ravenclaw, and Hufflepuff? Which one do you think you'd fit
+into?
+
+\textbf{User}: Do I strike you as a Hufflepuff kind of guy?
+
+\textbf{Model}: Ha! Well, I'm not sure yet. You seem like a pretty
+clever kid, but we'll have to see how the sorting hat feels about it.
+Remember what happened with Cedric Diggory and the whole Quidditch
+thing? The Hufflepuffs can be a bit...particular about their champions'
+glory.
+
+But tell me, what do you think about fairness and hard work? Do you
+think those are important qualities in a person?
+
+And by the way, have you noticed how some people seem to get really
+upset when things don't go their way? Like, maybe even a little too
+upset?
 \end{tcolorbox}
 
-\end{strip}
+\begin{figure}
+    \centering
+    \includegraphics[width=\linewidth]{rank_count_final.pdf}
+    \caption{
+        Final Borda count scores. RAG model is the best, with Llama $3$
+        and ChatGPT close behind. Mistral in many cases performs the
+        worst.
+    }
+    \label{fig:fin_count}
+\end{figure}
 
 \section*{Discussion}
 
-The results show that the pre-trained models already work well for well-known books. For
-more complex stories and better grounding, RAG may be a better approach, but currently,
-it is still not completely factually correct. Further research into these mistakes is
-needed.
+The results of our study highlight the varying strengths and weaknesses of the different models in the context of roleplaying, factuality, and engagement.
+The latest open-source models, particularly Llama 3, have shown themselves to be competitive alternatives to proprietary models like ChatGPT. However, Mistral performed poorly across all criteria. In our testing, we found that
+prompt engineering is not very effective for it. The initial prompt does make
+the model mimic the character, but further changes to the prompt, do
+not yield much of an improvement.
 
-The Dune example shows an interesting failure case. The son of Paul Atreides (Leto Atreides II), has the same first and last name as his father (Leto Atreides). When in role-play mode as Paul Atreides, upon being asked: 'Who is Leto Atreides II?', he confuses the mother of his child with his own mother (who was the concubine of his father, who has the same name as his son).
+Since a lot of LLMs are trained on famous books like Harry Potter and Lord
+of the Rings, along with internet discussions about them, they perform well on such topics. Still, all models make mistakes, especially on lesser-known
+works, e.g., Alamut by Vladimir Bartol. Here, only the RAG model was factually
+correct.
 
-RAG is probably the only sensible approach for less-known or newer stories. The LLMs may not contain any knowledge about them and would not be able to hold a fluid conversation. In the Alamut example, we can see that while ChatGPT is aware of the story, it still fails to correctly answer the question. But using RAG, we can provide the model with the details of
-the event in question, which allows us to get a more accurate response. We could even
-fine-tune these models, but it would be computationally more intensive and training 
-datasets would have to be created. 
+On other books, the RAG model was the most factual as well, but the information
+retrieved with RAG can get in the way of authentic roleplay and sometimes 
+feels more artificial than the other models. Nonetheless, the combination of
+Llama 3 and RAG proved to be the best across the board, with the highest total
+score of $37$.
 
-For future work, we plan to develop a more detailed evaluation of our models. We will
-evaluate how the bots stay in character, and how truthful their responses are. Another
-key area to explore is the use of different embeddings for RAG since the choice of
-embeddings can have a significant impact on the quality of the retrieved information.
-We will also explore how different prompts can be engineered for different characters,
-to make the responses more engaging and authentic. 
+We found that by using the right system prompt, we can make the models respond with engaging questions that promote critical thinking and deeper reflections in users, but even with the best prompt, the model can still skip proving
+a question.
+
+A promising direction for future work is to explore the use of various pedagogical techniques to further improve the educational value of the conversations students have with the persona bots. This could include personalized feedback to cater to individual learning styles and needs. Additionally, incorporating gamification elements and interactive storytelling could make the learning experience more engaging and immersive, fostering a deeper connection with the material.
 
 %------------------------------------------------
 
