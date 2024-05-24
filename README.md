@@ -60,7 +60,7 @@ We evaluated the models responses for four books ([answers](answers)) manually
 on three different criteria:
 
 - roleplay,
-- factual and
+- factuality and
 - engagement.
 
 We evaluated each model from best (4) to worst (1) in each category for each
